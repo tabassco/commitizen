@@ -29,6 +29,7 @@ from commitizen.version_schemes import (
     InvalidVersion,
     Prerelease,
 )
+from distutils.command import build
 
 logger = getLogger("commitizen")
 
@@ -246,6 +247,14 @@ class Bump:
                     "No commits found to generate a pre-release.\n"
                     "To avoid this error, manually specify the type of increment with `--increment`"
                 )
+
+            workspace = self.config.settings.get("workspace")
+            if workspace:
+                package_name = self.config.settings.get("package-name")
+                if build_metadata:
+                    build_metadata = f"{package_name}+{build_metadata}"
+                else:
+                    build_metadata = package_name
 
             new_version = current_version.bump(
                 increment,

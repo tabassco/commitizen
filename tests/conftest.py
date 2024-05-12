@@ -67,6 +67,32 @@ def tmp_commitizen_project(tmp_git_project):
     yield tmp_git_project
 
 
+def create_project_setup(
+    base_directory,
+    config_extra: str | None,
+    version: str,
+    initial_commit: str,
+    workspace: bool,
+):
+    tmp_commitizen_cfg_file = base_directory.join("pyproject.toml")
+    tmp_commitizen_cfg_file.write(
+        f"[tool.commitizen]\n"
+        f'version="{version}"\n'
+        f"workspace={str(workspace).lower()}"
+    )
+    tmp_version_file = base_directory.join("__version__.py")
+    tmp_version_file.write(version)
+    tmp_commitizen_cfg_file = base_directory.join("pyproject.toml")
+    tmp_version_file_string = str(tmp_version_file).replace("\\", "/")
+    tmp_commitizen_cfg_file.write(
+        f"{tmp_commitizen_cfg_file.read()}\n"
+        f'version_files = ["{tmp_version_file_string}"]\n'
+    )
+    if config_extra:
+        tmp_commitizen_cfg_file.write(config_extra, mode="a")
+    create_file_and_commit(initial_commit)
+
+
 @pytest.fixture(scope="function")
 def tmp_commitizen_project_initial(tmp_git_project):
     def _initial(
@@ -75,23 +101,30 @@ def tmp_commitizen_project_initial(tmp_git_project):
         initial_commit="feat: new user interface",
     ):
         with tmp_git_project.as_cwd():
-            tmp_commitizen_cfg_file = tmp_git_project.join("pyproject.toml")
-            tmp_commitizen_cfg_file.write(
-                f"[tool.commitizen]\n" f'version="{version}"\n'
+            create_project_setup(
+                tmp_git_project, config_extra, version, initial_commit, False
             )
-            tmp_version_file = tmp_git_project.join("__version__.py")
-            tmp_version_file.write(version)
-            tmp_commitizen_cfg_file = tmp_git_project.join("pyproject.toml")
-            tmp_version_file_string = str(tmp_version_file).replace("\\", "/")
-            tmp_commitizen_cfg_file.write(
-                f"{tmp_commitizen_cfg_file.read()}\n"
-                f'version_files = ["{tmp_version_file_string}"]\n'
-            )
-            if config_extra:
-                tmp_commitizen_cfg_file.write(config_extra, mode="a")
-            create_file_and_commit(initial_commit)
 
             return tmp_git_project
+
+    yield _initial
+
+
+@pytest.fixture(scope="function")
+def tmp_commitizen_working_dir_projects_initial(tmp_git_project):
+    def _initial(
+        config_extra: str | None = None,
+        version="0.1.0",
+        initial_commit="feat: new user interface",
+    ):
+        project_names = ["lib-a", "lib-b"]
+        with tmp_git_project.as_cwd():
+            for project_name in project_names:
+                project_path = tmp_git_project.join(project_name)
+                os.mkdir(project_path)
+                create_project_setup(
+                    project_path, config_extra, version, initial_commit, True
+                )
 
     yield _initial
 

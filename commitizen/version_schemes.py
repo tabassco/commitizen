@@ -295,6 +295,7 @@ class BaseVersion(_BaseVersion):
                 )
             build_metadata = self.generate_build_metadata(build_metadata)
             # TODO: post version
+
             return self.scheme(f"{base}{pre_version}{dev_version}{build_metadata}")  # type: ignore
 
 
